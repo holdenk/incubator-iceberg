@@ -16,7 +16,8 @@ def generate_data(scale_factors):
         classname = "org.apache.spark.sql.execution.benchmark.TPCDSDatagen"
         target = s3_root + "/" + str(factor)
         jobname="dsgen" + str(factor)
-        image=f"{container_prefix}/iceberg-spark:{spark_tags[0]}"
+        tag = spark_tags[0]
+        image=f"{container_prefix}/iceberg-spark:{tag}"
         app_name = f"spark-tpcds-test-gen-{factor}"
         jar="local:///spark-tpcds-datagen_2.12-0.1.0-SNAPSHOT-with-dependencies.jar"
         exec_str = f"{spark_home}/bin/spark-submit --conf spark.kubernetes.container.image={image}   --class {classname} --name {app_name} --conf spark.kubernetes.driver.label.sdr.appname=spark  --conf spark.kubernetes.driver.executor.sdr.appname=spark {spark_config} {jar} --output-location {target} --scale-factor {factor}"
@@ -27,7 +28,7 @@ def generate_data(scale_factors):
 
 
 
-image_location = os.getenv("CONTAINER_PREFIX")
+container_prefix = os.getenv("CONTAINER_PREFIX")
 spark_tags = os.getenv("SPARK_TAGS_FLAT").split(" ")
 spark_home = os.getenv("SPARK_HOME")
 spark_config = os.getenv("SPARK_CONFIG")

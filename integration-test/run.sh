@@ -1,6 +1,8 @@
 #!/bin/bash
 set -ex
 
+source extra.sh
+
 echo "Required variable check"
 if [ -z "$CONTAINER_PREFIX" ]; then
   echo "You must set the shell env variable CONTAINER_PREFIX so we can push the containers to the correct place"
@@ -34,7 +36,7 @@ SPARK_REPO=${SPARK_REPO:-"https://github.com/holdenk/spark"}
 SPARK_BRANCHES=${SPARK_BRANCHES:-"master future"}
 SPARK_BRANCHES_ARRAY=($(echo ${SPARK_BRANCHES} | tr " " "\n"))
 SPARK_VERSION=${SPARK_VERSION:-3.0.1}
-SPARK_SUBDIR=${SPARK_SUBDIR:-spark-${SPARK_VERSION}-bin-hadoop2.7}
+SPARK_SUBDIR=${SPARK_SUBDIR:-spark-${SPARK_VERSION}-bin-hadoop3.2}
 SPARK_HOME=${SPARK_HOME:-"${INTEGRATION_RUN_DIR}/${SPARK_SUBDIR}"}
 SPARK_ARCHIVE=${SPARK_ARCHIVE:-${SPARK_SUBDIR}.tgz}
 FLINK_VERSION=${FLINK_VERSION:-1.11}
@@ -128,7 +130,7 @@ if [ ! -d spark-tpcds-datagen ]; then
   git clone git@github.com:maropu/spark-tpcds-datagen.git
 fi
 pushd spark-tpcds-datagen
-./build/mvn package -DskipTests
+#./build/mvn package -DskipTests
 popd
 
 echo "Build the containers with Iceberg & tools present"
@@ -157,11 +159,11 @@ if [ "$SKIP_MINIO" != "true" ]; then
 fi
 
 # Create SPARK_CONFIG with the FS layer & K8s config
-export SPARK_CONFIG="--conf fs.s3a.impl=org.apache.spark.hadoop.s3a.S3AFileSystem --conf fs.s3a.access.key=${S3_ACCESS_KEY} --conf fs.s3a.access.secret=${S3_SECRET_KEY} --conf fs.s3a.endpoint=http://${S3_ENDPOINT} --master k8s://${K8S_ENDPOINT} --conf spark.kubernetes.namespace=${TEST_NS} --conf spark.kubernetes.authenticate.driver.serviceAccountName=${SERVICE_ACCOUNT} --deploy-mode cluster"
+export SPARK_CONFIG="--conf fs.s3a.impl=org.apache.spark.hadoop.s3a.S3AFileSystem --conf fs.s3a.access.key=${S3_ACCESS_KEY} --conf fs.s3a.access.secret=${S3_SECRET_KEY} --conf fs.s3a.endpoint=http://${S3_ENDPOINT} --master k8s://${K8S_ENDPOINT} --conf spark.kubernetes.namespace=${TEST_NS} --conf spark.kubernetes.authenticate.driver.serviceAccountName=${SERVICE_ACCOUNT} --deploy-mode cluster $USER_SPARK_CONFIG"
 pwd
 pushd ${INTEGRATION_DIR}
 # We can't directly read -ax so flatten with space seperators. ugh.
-export SPARK_TAGS_FLAT="$SPARK_TAGS[0]"
+export SPARK_TAGS_FLAT="${SPARK_TAGS[0]}"
 for i in "${SPARK_TAGS[@]:1}"; do
    SPARK_TAGS_FLAT+=" $i"
 done

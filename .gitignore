@@ -58,3 +58,4 @@ python/.mypy_cache/
 
 # K8s integration stuff
 integration-test/extra.yaml
+integration-test/extra.sh
