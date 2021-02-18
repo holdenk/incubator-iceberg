@@ -159,7 +159,7 @@ if [ "$SKIP_MINIO" != "true" ]; then
 fi
 
 # Create SPARK_CONFIG with the FS layer & K8s config
-export SPARK_CONFIG="--conf fs.s3a.impl=org.apache.spark.hadoop.s3a.S3AFileSystem --conf fs.s3a.access.key=${S3_ACCESS_KEY} --conf fs.s3a.access.secret=${S3_SECRET_KEY} --conf fs.s3a.endpoint=http://${S3_ENDPOINT} --master k8s://${K8S_ENDPOINT} --conf spark.kubernetes.namespace=${TEST_NS} --conf spark.kubernetes.authenticate.driver.serviceAccountName=${SERVICE_ACCOUNT} --deploy-mode cluster $USER_SPARK_CONFIG"
+export SPARK_CONFIG="--conf spark.hadoop.fs.s3a.impl=org.apache.hadoop.fs.s3a.S3AFileSystem --conf spark.hadoop.fs.s3a.path.style.access=true --conf spark.hadoop.fs.s3a.access.key=${S3_ACCESS_KEY} --conf spark.hadoop.fs.s3a.secret.key=${S3_SECRET_KEY} --conf spark.hadoop.fs.s3a.endpoint=http://${S3_ENDPOINT} --master k8s://${K8S_ENDPOINT} --conf spark.kubernetes.namespace=${TEST_NS} --conf spark.kubernetes.authenticate.driver.serviceAccountName=${SERVICE_ACCOUNT} --deploy-mode cluster $USER_SPARK_CONFIG"
 pwd
 pushd ${INTEGRATION_DIR}
 # We can't directly read -ax so flatten with space seperators. ugh.

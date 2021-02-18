@@ -7,3 +7,6 @@ COPY spark-tpcds-datagen/target/spark-tpcds-datagen_2.12-0.1.0-SNAPSHOT-with-dep
 USER 0
 RUN chmod a+rx /opt/spark/jars/*.jar /*.jar
 USER ${spark_uid}
+
+# I want to debug WTF is going on with the execs.
+CMD "sleep 15; /opt/entrypoint.sh; sleep 600"
