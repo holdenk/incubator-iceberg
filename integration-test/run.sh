@@ -21,12 +21,6 @@ then
   exit 1
 fi
 echo "Configuring command for downloads"
-DL="axel"
-if ! command -v axel &> /dev/null
-then
-  echo "Falling back to wget from axel, try brew install axel or apt-get install axel for faster downloads."
-  DL="wget"
-fi
 
 
 echo "Configuring default variables if unset"
@@ -35,7 +29,7 @@ INTEGRATION_RUN_DIR=${INTEGRATION_RUN_DIR:-$(mktemp -d -t iceberg-int-XXXXXXXXXX
 SPARK_REPO=${SPARK_REPO:-"https://github.com/holdenk/spark"}
 SPARK_BRANCHES=${SPARK_BRANCHES:-"master future"}
 SPARK_BRANCHES_ARRAY=($(echo ${SPARK_BRANCHES} | tr " " "\n"))
-SPARK_VERSION=${SPARK_VERSION:-3.0.1}
+SPARK_VERSION=${SPARK_VERSION:-3.0.2}
 SPARK_SUBDIR=${SPARK_SUBDIR:-spark-${SPARK_VERSION}-bin-hadoop3.2}
 SPARK_HOME=${SPARK_HOME:-"${INTEGRATION_RUN_DIR}/${SPARK_SUBDIR}"}
 SPARK_ARCHIVE=${SPARK_ARCHIVE:-${SPARK_SUBDIR}.tgz}
@@ -82,7 +76,7 @@ pushd "${INTEGRATION_RUN_DIR}"
 # Build the base Spark container
 if [ ! -d "${SPARK_HOME}" ]; then
   if [ ! -f "${SPARK_ARCHIVE}" ]; then
-    (${DL} "https://www.apache.org/dyn/closer.cgi?action=download&filename=spark/spark-${SPARK_VERSION}/${SPARK_ARCHIVE}" -o ${SPARK_ARCHIVE} || ${DL} "https://downloads.apache.org/spark/spark-${SPARK_VERSION}/${SPARK_ARCHIVE}")
+    (wget "https://www.apache.org/dyn/closer.cgi?action=download&filename=spark/spark-${SPARK_VERSION}/${SPARK_ARCHIVE}" -O ${SPARK_ARCHIVE} || wget "https://downloads.apache.org/spark/spark-${SPARK_VERSION}/${SPARK_ARCHIVE}")
   fi
   tar -xvf "${SPARK_ARCHIVE}"
 fi
@@ -130,8 +124,17 @@ if [ ! -d spark-tpcds-datagen ]; then
   git clone git@github.com:maropu/spark-tpcds-datagen.git
 fi
 pushd spark-tpcds-datagen
-#./build/mvn package -DskipTests
+./build/mvn package -DskipTests
 popd
+
+if [ ! -d trino-on-k8s ]; then
+  git clone git@github.com:joshuarobinson/trino-on-k8s.git
+fi
+pushd trino-on-k8s/hive_metastore
+docker build -t "${CONTAINER_PREFIX}/hivemetastore:latest" .
+docker push "${CONTAINER_PREFIX}/hivemetastore:latest"
+popd
+
 
 echo "Build the containers with Iceberg & tools present"
 rm -rf iceberg
@@ -157,6 +160,15 @@ if [ "$SKIP_MINIO" != "true" ]; then
   export S3_ENDPOINT=${deployment}.${TEST_NS}.svc.cluster.local
   export S3_ROOT="s3a://bucket"
 fi
+
+echo "Deploying hive metastore"
+echo "Deploying hive metastore config map"
+pushd "${INTEGRATION_RUN_DIR}/trino-on-k8s/hive_metastore"
+kubectl create configmap metastore-cfg --dry-run --from-file=metastore-site.xml --from-file=core-site.xml -o yaml | kubectl apply -f -
+popd
+
+cat ${INTEGRATION_DIR}/metastore.yaml | sed 's@CONTAINER_PREFIX@'"$CONTAINER_PREFIX"'@' | kubectl apply -f -
+# exit 0
 
 # Create SPARK_CONFIG with the FS layer & K8s config
 export SPARK_CONFIG="--conf spark.hadoop.fs.s3a.impl=org.apache.hadoop.fs.s3a.S3AFileSystem --conf spark.hadoop.fs.s3a.path.style.access=true --conf spark.hadoop.fs.s3a.access.key=${S3_ACCESS_KEY} --conf spark.hadoop.fs.s3a.secret.key=${S3_SECRET_KEY} --conf spark.hadoop.fs.s3a.endpoint=http://${S3_ENDPOINT} --master k8s://${K8S_ENDPOINT} --conf spark.kubernetes.namespace=${TEST_NS} --conf spark.kubernetes.authenticate.driver.serviceAccountName=${SERVICE_ACCOUNT} --deploy-mode cluster $USER_SPARK_CONFIG"
