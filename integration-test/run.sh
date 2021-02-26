@@ -167,7 +167,7 @@ pushd "${INTEGRATION_RUN_DIR}/trino-on-k8s/hive_metastore"
 kubectl create configmap metastore-cfg --dry-run --from-file=metastore-site.xml --from-file=core-site.xml -o yaml | kubectl apply -f -
 popd
 
-cat ${INTEGRATION_DIR}/metastore.yaml | sed 's@CONTAINER_PREFIX@'"$CONTAINER_PREFIX"'@' | | sed 's@TEST_NS@'"$TEST_NS"'@' | kubectl apply -f -
+cat ${INTEGRATION_DIR}/metastore.yaml | sed 's@CONTAINER_PREFIX@'"$CONTAINER_PREFIX"'@'  | sed 's@TEST_NS@'"$TEST_NS"'@' | kubectl apply -f -
 # exit 0
 
 # Create SPARK_CONFIG with the FS layer & K8s config
