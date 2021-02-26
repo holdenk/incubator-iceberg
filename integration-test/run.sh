@@ -46,13 +46,13 @@ if [ -z "${TEST_NS}" ]; then
 fi
 # Apply any extra configuration (e.g. networking, etc.)
 if [ -f extra.yaml ]; then
-  kubectl apply -f extra.yaml
+  cat extra.yaml | sed 's@TEST_NS@'"$TEST_NS"'@' | kubectl apply -f -
 fi
 if [ -z "$SERVICE_ACCOUNT" ]; then
   echo "No service account configured, making one"
   kubectl get serviceaccount spark-iceberg || kubectl create serviceaccount spark-iceberg --namespace ${TEST_NS}
-  kubectl get rolebinding spark-ice-role || kubectl create rolebinding spark-ice-role --role=edit --serviceaccount=${TEST_NS}:spark --namespace=${TEST_NS}
-  export SERVICE_ACCOUNT=spark
+  kubectl get rolebinding spark-ice-role || kubectl create rolebinding spark-ice-role --role=edit --serviceaccount="${TEST_NS}:${SERVICE_ACCOUNT}" --namespace=${TEST_NS}
+  export SERVICE_ACCOUNT=spark-iceberg
 fi
 TAG=$(date +%s)
 # Archs to build for, e.g. "--platform linux/amd64,linux/arm64"
@@ -101,13 +101,13 @@ do
   fi
   pushd "spark-${branch}"
   (git checkout "${branch}" && \
-#   git pull && \
+   git pull && \
 #   ./build/mvn -Pkubernetes -Phadoop-aws compile package -DskipTests && \
   (./bin/docker-image-tool.sh -r "${CONTAINER_PREFIX}" -t "${TAG}-${branch}" -b java_image_tag=11-jre-slim -X -p resource-managers/kubernetes/docker/src/main/dockerfiles/spark/bindings/python/Dockerfile build || ( \
    ./bin/docker-image-tool.sh -r "${CONTAINER_PREFIX}" -t "${TAG}-${branch}" -b java_image_tag=11-jre-slim  -p resource-managers/kubernetes/docker/src/main/dockerfiles/spark/bindings/python/Dockerfile build && \
    ./bin/docker-image-tool.sh -r "${CONTAINER_PREFIX}" -t "${TAG}-${branch}" push)) && \
   SPARK_TAGS+=("${TAG}-${branch}") \
-  ) || echo "Spark branch ${branch} failed at $(git log -n 5)"
+  ) || echo "Spark branch ${branch} failed at $(git log -n 1)"
   popd
 done
 
@@ -124,7 +124,7 @@ if [ ! -d spark-tpcds-datagen ]; then
   git clone git@github.com:maropu/spark-tpcds-datagen.git
 fi
 pushd spark-tpcds-datagen
-./build/mvn package -DskipTests
+#./build/mvn package -DskipTests
 popd
 
 if [ ! -d trino-on-k8s ]; then
@@ -167,7 +167,7 @@ pushd "${INTEGRATION_RUN_DIR}/trino-on-k8s/hive_metastore"
 kubectl create configmap metastore-cfg --dry-run --from-file=metastore-site.xml --from-file=core-site.xml -o yaml | kubectl apply -f -
 popd
 
-cat ${INTEGRATION_DIR}/metastore.yaml | sed 's@CONTAINER_PREFIX@'"$CONTAINER_PREFIX"'@' | kubectl apply -f -
+cat ${INTEGRATION_DIR}/metastore.yaml | sed 's@CONTAINER_PREFIX@'"$CONTAINER_PREFIX"'@' | | sed 's@TEST_NS@'"$TEST_NS"'@' | kubectl apply -f -
 # exit 0
 
 # Create SPARK_CONFIG with the FS layer & K8s config
