@@ -1,0 +1,98 @@
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysql-secrets
+type: Opaque
+data:
+  ROOT_PASSWORD: bloopTheBloopNoopTheNoop
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql-deployment
+  labels:
+    app: mysql
+    sdr.appname: metastore
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      name: mysql-server
+      labels:
+        app: mysql
+        sdr.appname: metastore
+    spec:
+      containers:
+        - name: mysql
+          image: mysql/mysql-server:5.7
+          ports:
+            - containerPort: 3306
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secrets
+                  key: ROOT_PASSWORD
+          resources:
+            requests:
+              cpu: 100m
+              memory: 8Gi
+              ephemeral-storage: 8Gi
+            limits:
+              cpu: "1"
+              memory: 10Gi
+              ephemeral-storage: 10Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-service
+  labels:
+    sdr.appname: metastore
+spec:
+  selector:
+    app: mysql
+  ports:
+    - protocol: TCP
+      port: 3306
+      targetPort: 3306
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: hive-initschema
+  labels:
+    sdr.appname: metastore
+spec:
+  template:
+    spec:
+      labels:
+        sdr.appname: metastore
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                      - mysql
+              topologyKey: kubernetes.io/hostname
+      containers:
+        - name: hivemeta
+          image: CONTAINER_PREFIX/hivemetastore:latest
+          command: ["/opt/hive-metastore/bin/schematool"]
+          args: ["--verbose" ,"-initSchema" , "-dbType", "mysql" , "-userName", "root",
+                 "-passWord", "${ROOT_PASSWORD}" , "-url", "jdbc:mysql://mysql-service.TEST_NS.svc:3306/metastore_db?createDatabaseIfNotExist=true&connectTimeout=1000"]
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secrets
+                  key: ROOT_PASSWORD
+      restartPolicy: Never
+  backoffLimit: 4
