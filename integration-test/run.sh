@@ -52,7 +52,7 @@ if [ -z "$SERVICE_ACCOUNT" ]; then
   echo "No service account configured, making one"
   kubectl get serviceaccount spark-iceberg || kubectl create serviceaccount spark-iceberg --namespace ${TEST_NS}
   export SERVICE_ACCOUNT=spark-iceberg
-  kubectl get rolebinding spark-ice-role || kubectl create rolebinding spark-ice-role --role=edit --serviceaccount="${TEST_NS}:${SERVICE_ACCOUNT}" --namespace=${TEST_NS}
+  kubectl get rolebinding spark-ice-role || kubectl create rolebinding spark-ice-role --clusterrole=edit --serviceaccount="${TEST_NS}:${SERVICE_ACCOUNT}" --namespace=${TEST_NS}
 fi
 TAG=$(date +%s)
 # Archs to build for, e.g. "--platform linux/amd64,linux/arm64"
