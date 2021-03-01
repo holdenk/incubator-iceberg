@@ -5,7 +5,7 @@ metadata:
   name: mysql-secrets
 type: Opaque
 data:
-  ROOT_PASSWORD: bloopTheBloopNoopTheNoop
+  ROOT_PASSWORD: Ymxvb3BUaGVOb29w
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -37,6 +37,8 @@ spec:
                 secretKeyRef:
                   name: mysql-secrets
                   key: ROOT_PASSWORD
+            - name: MYSQL_ROOT_HOST
+              value: "%"
           resources:
             requests:
               cpu: 100m
@@ -69,9 +71,10 @@ metadata:
     sdr.appname: metastore
 spec:
   template:
-    spec:
+    metadata:
       labels:
         sdr.appname: metastore
+    spec:
       affinity:
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -87,7 +90,7 @@ spec:
           image: CONTAINER_PREFIX/hivemetastore:latest
           command: ["/opt/hive-metastore/bin/schematool"]
           args: ["--verbose" ,"-initSchema" , "-dbType", "mysql" , "-userName", "root",
-                 "-passWord", "${ROOT_PASSWORD}" , "-url", "jdbc:mysql://mysql-service.TEST_NS.svc:3306/metastore_db?createDatabaseIfNotExist=true&connectTimeout=1000"]
+                 "-passWord", "$(MYSQL_ROOT_PASSWORD)" , "-url", "jdbc:mysql://mysql-service:3306/metastore_db?createDatabaseIfNotExist=true&connectTimeout=1000"]
           env:
             - name: MYSQL_ROOT_PASSWORD
               valueFrom:

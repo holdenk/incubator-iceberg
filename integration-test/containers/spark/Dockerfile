@@ -6,6 +6,7 @@ ADD https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-bundle/1.11.563/aw
 COPY spark-tpcds-datagen/target/spark-tpcds-datagen_2.12-0.1.0-SNAPSHOT-with-dependencies.jar /
 USER 0
 RUN chmod a+rx /opt/spark/jars/*.jar /*.jar
+RUN apt-get install -y inetutils-ping telnet wget
 USER ${spark_uid}
 
 # I want to debug WTF is going on with the execs.

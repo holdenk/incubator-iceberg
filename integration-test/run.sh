@@ -157,7 +157,7 @@ if [ "$SKIP_MINIO" != "true" ]; then
   helm status --namespace "${TEST_NS}" "${deployment}" || helm install --namespace "${TEST_NS}"  --set accessKey=myaccesskey,secretKey=mysecretkey --set image.repository="${MINIO_REPO}" --set image.tag="${MINIO_TAG}" --set defaultBucket.enabled=true  --set persistence.enabled=false --set resources.requests.memory=10Gi --set resources.limits.memory=12Gi --set podLabels."sdr\.appname"="minio" "${deployment}" minio/minio
   export S3_ACCESS_KEY=myaccesskey
   export S3_SECRET_KEY=mysecretkey
-  export S3_ENDPOINT=${deployment}.${TEST_NS}.svc.cluster.local
+  export S3_ENDPOINT=${deployment}.${TEST_NS}.svc
   export S3_ROOT="s3a://bucket"
 fi
 
@@ -167,7 +167,7 @@ pushd "${INTEGRATION_RUN_DIR}/trino-on-k8s/hive_metastore"
 kubectl create configmap metastore-cfg --dry-run --from-file=metastore-site.xml --from-file=core-site.xml -o yaml | kubectl apply -f -
 popd
 
-cat ${INTEGRATION_DIR}/metastore.yaml | sed 's@CONTAINER_PREFIX@'"$CONTAINER_PREFIX"'@'  | sed 's@TEST_NS@'"$TEST_NS"'@' | kubectl apply -f -
+cat ${INTEGRATION_DIR}/metastore.yaml | sed 's@CONTAINER_PREFIX@'"$CONTAINER_PREFIX"'@'  | kubectl apply -f -
 # exit 0
 
 # Create SPARK_CONFIG with the FS layer & K8s config
