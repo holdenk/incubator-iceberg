@@ -137,9 +137,10 @@ popd
 
 
 echo "Build the containers with Iceberg & tools present"
-rm -rf iceberg
-cp -af ${ICEBERG_DIR} ./iceberg
-
+if [ ! -d iceberg ]; then
+  cp -af ${ICEBERG_DIR} ./iceberg
+fi
+  
 for SPARK_TAG in "${SPARK_TAGS[@]}"
 do
   docker buildx build . -f "${INTEGRATION_DIR}/containers/spark/Dockerfile" -t "${CONTAINER_PREFIX}/iceberg-spark:${SPARK_TAG}" --build-arg base="${CONTAINER_PREFIX}/spark-py:${SPARK_TAG}" --push ${DOCKER_EXTRA}
@@ -157,7 +158,7 @@ if [ "$SKIP_MINIO" != "true" ]; then
   helm status --namespace "${TEST_NS}" "${deployment}" || helm install --namespace "${TEST_NS}"  --set accessKey=myaccesskey,secretKey=mysecretkey --set image.repository="${MINIO_REPO}" --set image.tag="${MINIO_TAG}" --set defaultBucket.enabled=true  --set persistence.enabled=false --set resources.requests.memory=10Gi --set resources.limits.memory=12Gi --set podLabels."sdr\.appname"="minio" "${deployment}" minio/minio
   export S3_ACCESS_KEY=myaccesskey
   export S3_SECRET_KEY=mysecretkey
-  export S3_ENDPOINT=${deployment}.${TEST_NS}.svc
+  export S3_ENDPOINT="${deployment}.${TEST_NS}.svc:9000"
   export S3_ROOT="s3a://bucket"
 fi
 
@@ -171,7 +172,7 @@ cat ${INTEGRATION_DIR}/metastore.yaml | sed 's@CONTAINER_PREFIX@'"$CONTAINER_PRE
 # exit 0
 
 # Create SPARK_CONFIG with the FS layer & K8s config
-export SPARK_CONFIG="--conf spark.hadoop.fs.s3a.impl=org.apache.hadoop.fs.s3a.S3AFileSystem --conf spark.hadoop.fs.s3a.path.style.access=true --conf spark.hadoop.fs.s3a.access.key=${S3_ACCESS_KEY} --conf spark.hadoop.fs.s3a.secret.key=${S3_SECRET_KEY} --conf spark.hadoop.fs.s3a.endpoint=http://${S3_ENDPOINT} --master k8s://${K8S_ENDPOINT} --conf spark.kubernetes.namespace=${TEST_NS} --conf spark.kubernetes.authenticate.driver.serviceAccountName=${SERVICE_ACCOUNT} --deploy-mode cluster $USER_SPARK_CONFIG"
+export SPARK_CONFIG="--conf spark.hadoop.fs.s3a.impl=org.apache.hadoop.fs.s3a.S3AFileSystem --conf spark.hadoop.fs.s3a.path.style.access=true --conf spark.hadoop.fs.s3a.access.key=${S3_ACCESS_KEY} --conf spark.hadoop.fs.s3a.secret.key=${S3_SECRET_KEY} --conf spark.hadoop.fs.s3a.endpoint=http://${S3_ENDPOINT} --master k8s://${K8S_ENDPOINT} --conf spark.kubernetes.namespace=${TEST_NS} --conf spark.kubernetes.authenticate.driver.serviceAccountName=${SERVICE_ACCOUNT} --deploy-mode cluster $USER_SPARK_CONFIG --conf spark.hadoop.javax.jdo.option.ConnectionDriverName=com.mysql.jdbc.Driver --conf spark.hadoop.javax.jdo.option.ConnectionURL=mysql-service:3306 --conf spark.hadoop.javax.jdo.option.ConnectionUserName=root --conf spark.hadoop.javax.jdo.option.ConnectionPassword=bloopTheNoop --conf spark.hadoop.metastore.warehouse.dir=${S3_ROOT}/warehouse --conf spark.hadoop.metastore.thrift.port=9083 --conf spark.sql.catalog.spark_catalog.type=hive --conf spark.executor.instances=20"
 pwd
 pushd ${INTEGRATION_DIR}
 # We can't directly read -ax so flatten with space seperators. ugh.

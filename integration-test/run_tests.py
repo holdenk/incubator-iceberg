@@ -20,7 +20,7 @@ def generate_data(scale_factors):
         image=f"{container_prefix}/iceberg-spark:{tag}"
         app_name = f"spark-tpcds-test-gen-{factor}"
         jar="local:///spark-tpcds-datagen_2.12-0.1.0-SNAPSHOT-with-dependencies.jar"
-        exec_str = f"{spark_home}/bin/spark-submit --conf spark.kubernetes.container.image={image}   --class {classname} --name {app_name} --conf spark.kubernetes.driver.label.sdr.appname=spark  --conf spark.kubernetes.executor.label.sdr.appname=spark {spark_config} {jar} --output-location {target} --scale-factor {factor}"
+        exec_str = f"{spark_home}/bin/spark-submit --conf spark.kubernetes.container.image={image}   --class {classname} --name {app_name} --conf spark.kubernetes.driver.label.sdr.appname=spark --conf spark.sql.catalog.hive_prod=org.apache.iceberg.spark.SparkCatalog --conf spark.kubernetes.executor.label.sdr.appname=spark {spark_config} {jar} --output-location {target} --scale-factor {factor}"
         ret = os.system(exec_str)
         if ret != 0:
             sys.exit(f"Non zero exit while running {exec_str} generating data, k bye!")
