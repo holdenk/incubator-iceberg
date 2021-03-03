@@ -82,6 +82,10 @@ if [ ! -d "${SPARK_HOME}" ]; then
   tar -xvf "${SPARK_ARCHIVE}"
 fi
 pushd "${SPARK_HOME}"
+# Add Bouncy Castle for K3s
+if [ ! -f ./jars/bcprov-ext-jdk15on-1.68.jar ]; then
+  wget https://repo1.maven.org/maven2/org/bouncycastle/bcprov-ext-jdk15on/1.68/bcprov-ext-jdk15on-1.68.jar -O ./jars/bcprov-ext-jdk15on-1.68.jar
+fi
 unset SPARK_TAGS
 SPARK_TAGS=("${TAG}-release-${SPARK_VERSION}")
 SPARK_HASHES=("release-${SPARK_VERSION}")
