@@ -10,8 +10,8 @@ if [ -z "$CONTAINER_PREFIX" ]; then
 fi
 # Sort of required, we can set is kubectl cluster-info works
 if [ -z "$K8S_ENDPOINT" ]; then
-  echo "You should configure your K8S_ENDPOINT attempting cluster-info"
-  K8S_ENDPOINT=$(kubectl cluster-info)
+  echo "You should configure your K8S_ENDPOINT, see kubectl cluster-info"
+  exit 1
 fi
 
 echo "Required command check"

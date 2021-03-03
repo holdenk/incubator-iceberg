@@ -22,6 +22,7 @@ def generate_data(scale_factors):
         app_name = f"spark-tpcds-test-gen-{factor}"
         jar="local:///spark-tpcds-datagen_2.12-0.1.0-SNAPSHOT-with-dependencies.jar"
         exec_str = f"{spark_home}/bin/spark-submit --conf spark.kubernetes.container.image={image}   --class {classname} --name {app_name} --conf spark.kubernetes.driver.label.sdr.appname=spark --conf spark.sql.catalog.hive_prod=org.apache.iceberg.spark.SparkCatalog --conf spark.kubernetes.executor.label.sdr.appname=spark --conf spark.kubernetes.submission.waitAppCompletion=false {spark_config} {jar} --output-location {target} --scale-factor {factor}"
+        print(f"Executing {exec_str}")
         return subprocess.Popen(exec_str, shell=True)
 
 
