@@ -1,5 +1,6 @@
 import sys
 import os
+impot subprocess
 MIN_PYTHON = (3,8)
 
 # Check that things are ok.
@@ -20,10 +21,8 @@ def generate_data(scale_factors):
         image=f"{container_prefix}/iceberg-spark:{tag}"
         app_name = f"spark-tpcds-test-gen-{factor}"
         jar="local:///spark-tpcds-datagen_2.12-0.1.0-SNAPSHOT-with-dependencies.jar"
-        exec_str = f"{spark_home}/bin/spark-submit --conf spark.kubernetes.container.image={image}   --class {classname} --name {app_name} --conf spark.kubernetes.driver.label.sdr.appname=spark --conf spark.sql.catalog.hive_prod=org.apache.iceberg.spark.SparkCatalog --conf spark.kubernetes.executor.label.sdr.appname=spark {spark_config} {jar} --output-location {target} --scale-factor {factor}"
-        ret = os.system(exec_str)
-        if ret != 0:
-            sys.exit(f"Non zero exit while running {exec_str} generating data, k bye!")
+        exec_str = f"{spark_home}/bin/spark-submit --conf spark.kubernetes.container.image={image}   --class {classname} --name {app_name} --conf spark.kubernetes.driver.label.sdr.appname=spark --conf spark.sql.catalog.hive_prod=org.apache.iceberg.spark.SparkCatalog --conf spark.kubernetes.executor.label.sdr.appname=spark --conf spark.kubernetes.submission.waitAppCompletion=false {spark_config} {jar} --output-location {target} --scale-factor {factor}"
+        return subprocess.Popen(exec_str, shell=True)
 
 
 
@@ -33,5 +32,8 @@ spark_tags = os.getenv("SPARK_TAGS_FLAT").split(" ")
 spark_home = os.getenv("SPARK_HOME")
 spark_config = os.getenv("SPARK_CONFIG")
 s3_root = os.getenv("S3_ROOT")
-scale_factors = [1, 2, 3]
-generate_data(scale_factors)
+#scale_factors = [1, 2, 3]
+scale_factors = [2, 3]
+generated = os.getenv("DATA_GENERATED")
+if generated is None:
+    generate_data(scale_factors)

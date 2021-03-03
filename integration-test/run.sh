@@ -124,7 +124,9 @@ if [ ! -d spark-tpcds-datagen ]; then
   git clone git@github.com:maropu/spark-tpcds-datagen.git
 fi
 pushd spark-tpcds-datagen
-#./build/mvn package -DskipTests
+if [ ! -f ./target/spark-tpcds-datagen_2.12-0.1.0-SNAPSHOT-with-dependencies.jar ]; then
+  ./build/mvn package -DskipTests
+fi
 popd
 
 if [ ! -d trino-on-k8s ]; then
