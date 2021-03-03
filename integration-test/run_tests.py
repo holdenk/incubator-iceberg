@@ -1,6 +1,6 @@
 import sys
 import os
-impot subprocess
+import subprocess
 MIN_PYTHON = (3,8)
 
 # Check that things are ok.
