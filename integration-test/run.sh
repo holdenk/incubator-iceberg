@@ -29,7 +29,7 @@ INTEGRATION_RUN_DIR=${INTEGRATION_RUN_DIR:-$(mktemp -d -t iceberg-int-XXXXXXXXXX
 SPARK_REPO=${SPARK_REPO:-"https://github.com/holdenk/spark"}
 SPARK_BRANCHES=${SPARK_BRANCHES:-"master future"}
 SPARK_BRANCHES_ARRAY=($(echo ${SPARK_BRANCHES} | tr " " "\n"))
-SPARK_VERSION=${SPARK_VERSION:-3.0.2}
+SPARK_VERSION=${SPARK_VERSION:-3.1.1}
 SPARK_SUBDIR=${SPARK_SUBDIR:-spark-${SPARK_VERSION}-bin-hadoop3.2}
 SPARK_HOME=${SPARK_HOME:-"${INTEGRATION_RUN_DIR}/${SPARK_SUBDIR}"}
 SPARK_ARCHIVE=${SPARK_ARCHIVE:-${SPARK_SUBDIR}.tgz}
@@ -42,8 +42,9 @@ MINIO_MC_TAG=${MINIO_MC_TAG:-RELEASE.2021-02-07T02-02-05Z}
 # K8s
 if [ -z "${TEST_NS}" ]; then
   export TEST_NS=iceberg-integration
-  kubectl create namespace "${TEST_NS}"
+  kubectl get namespace "${TEST_NS}" || kubectl create namespace "${TEST_NS}"
 fi
+kubectl config set-context --current --namespace="${TEST_NS}"
 # Apply any extra configuration (e.g. networking, etc.)
 if [ -f extra.yaml ]; then
   cat extra.yaml | sed 's@TEST_NS@'"$TEST_NS"'@' | kubectl apply -f -
@@ -83,6 +84,7 @@ fi
 pushd "${SPARK_HOME}"
 unset SPARK_TAGS
 SPARK_TAGS=("${TAG}-release-${SPARK_VERSION}")
+SPARK_HASHES=("release-${SPARK_VERSION}")
 ./bin/docker-image-tool.sh -r "${CONTAINER_PREFIX}" -t "${TAG}-release-${SPARK_VERSION}" -b java_image_tag=11-jre-slim -X  -p kubernetes/dockerfiles/spark/bindings/python/Dockerfile build || (./bin/docker-image-tool.sh -r "${CONTAINER_PREFIX}" -t "${TAG}-release-${SPARK_VERSION}" -b java_image_tag=11-jre-slim   -p kubernetes/dockerfiles/spark/bindings/python/Dockerfile build && ./bin/docker-image-tool.sh -r "${CONTAINER_PREFIX}" -t "${TAG}-release-${SPARK_VERSION}" -b java_image_tag=11-jre-slim   -p kubernetes/dockerfiles/spark/bindings/python/Dockerfile push)
 popd
 
@@ -107,6 +109,7 @@ do
    ./bin/docker-image-tool.sh -r "${CONTAINER_PREFIX}" -t "${TAG}-${branch}" -b java_image_tag=11-jre-slim  -p resource-managers/kubernetes/docker/src/main/dockerfiles/spark/bindings/python/Dockerfile build && \
    ./bin/docker-image-tool.sh -r "${CONTAINER_PREFIX}" -t "${TAG}-${branch}" push)) && \
   SPARK_TAGS+=("${TAG}-${branch}") \
+  SPARK_HASHES+=("$(git rev-parse HEAD)") \
   ) || echo "Spark branch ${branch} failed at $(git log -n 1)"
   popd
 done
@@ -115,7 +118,7 @@ if [ ! -d flink-docker ]; then
   git clone git@github.com:apache/flink-docker.git
 fi
 pushd "flink-docker/${FLINK_VERSION}/scala_2.12-java11-debian"
-docker build . -t "${CONTAINER_PREFIX}/flink:${TAG}"
+(docker buildx build . -t "${CONTAINER_PREFIX}/flink:${TAG}" --push ${DOCKER_EXTRA} || docker build . -t "${CONTAINER_PREFIX}/flink:${TAG}")
 popd
 
 echo "Building support tools (TPCDS, etc.)"
@@ -181,6 +184,10 @@ pushd ${INTEGRATION_DIR}
 export SPARK_TAGS_FLAT="${SPARK_TAGS[0]}"
 for i in "${SPARK_TAGS[@]:1}"; do
    SPARK_TAGS_FLAT+=" $i"
+done
+export SPARK_HASHES_FLAT="${SPARK_HASHES[0]}"
+for i in "${SPARK_HASHES[@]:1}"; do
+   SPARK_HASHES_FLAT+=" $i"
 done
 export SPARK_HOME
 export SPARK_CONFIG
