@@ -59,5 +59,6 @@ python/.mypy_cache/
 # K8s integration stuff
 integration-test/extra.yaml
 integration-test/extra.sh
-integration-test/containers/hive/conf/core-site.xml # File is generated
-integration-test/containers/hive/conf/metastore-site.xml # File is generated
+# Generated k8s integration stuff
+integration-test/containers/hive/conf/core-site.xml
+integration-test/containers/hive/conf/metastore-site.xml
