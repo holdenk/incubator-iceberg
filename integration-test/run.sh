@@ -173,8 +173,10 @@ fi
 
 echo "Deploying hive metastore"
 echo "Deploying hive metastore config map"
-pushd "${INTEGRATION_RUN_DIR}/trino-on-k8s/hive_metastore"
-kubectl create configmap metastore-cfg --dry-run --from-file=metastore-site.xml --from-file=core-site.xml -o yaml | kubectl apply -f -
+#pushd "${INTEGRATION_RUN_DIR}/trino-on-k8s/hive_metastore" # TODO - Location of originally generated configmap. Can probably be remove. Can probably be removed.
+pushd "${INTEGRATION_DIR}/containers/hive/conf"
+envsubst < metastore-site.xml.tmp > metastore-site.xml && envsubst < core-site.xml.tmp > core-site.xml
+kubectl create configmap metastore-cfg --dry-run=client --from-file=metastore-site.xml --from-file=core-site.xml -o yaml | kubectl apply -f -
 popd
 
 cat ${INTEGRATION_DIR}/metastore.yaml | sed 's@CONTAINER_PREFIX@'"$CONTAINER_PREFIX"'@'  | kubectl apply -f -
@@ -203,3 +205,5 @@ CALLED_FROM_RUN=1 python3 run_tests.py
 
 #echo "Cleaning up"
 #rm -rf "${INTEGRATION_RUN_DIR}"
+#echo "Removing generated config files"
+#rm ${INTEGRATION_DIR}/containers/hive/conf/*.xml

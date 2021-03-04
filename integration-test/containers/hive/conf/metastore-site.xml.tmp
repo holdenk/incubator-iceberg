@@ -1,0 +1,37 @@
+<configuration>
+  <property>
+    <name>metastore.task.threads.always</name>
+    <value>org.apache.hadoop.hive.metastore.events.EventCleanerTask</value>
+  </property>
+  <property>
+    <name>metastore.expression.proxy</name>
+    <value>org.apache.hadoop.hive.metastore.DefaultPartitionExpressionProxy</value>
+  </property>
+  <property>
+    <name>javax.jdo.option.ConnectionDriverName</name>
+    <value>com.mysql.jdbc.Driver</value>
+  </property>
+  <property>
+    <name>javax.jdo.option.ConnectionURL</name>
+    <--! TODO: Make this more generic. It seems some other places in the integration suite don't use cluster.local  -->
+    <value>jdbc:mysql://mysql-service.${TEST_NS}.svc.cluster.local:3306/metastore_db</value>
+  </property>
+  <property>
+    <name>javax.jdo.option.ConnectionUserName</name>
+    <!-- TODO: Pull this from the secrets -->
+    <value>root</value>
+  </property>
+  <property>
+    <name>javax.jdo.option.ConnectionPassword</name>
+    <!-- TODO: Pull this from the secrets -->
+    <value>mypass</value>
+  </property>
+  <property>
+    <name>metastore.warehouse.dir</name>
+    <value>${S3_ROOT}/warehouse/</value>
+  </property>
+  <property>
+    <name>metastore.thrift.port</name>
+    <value>9083</value>
+  </property>
+</configuration>
