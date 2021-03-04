@@ -55,7 +55,7 @@ if [ -z "$SERVICE_ACCOUNT" ]; then
   export SERVICE_ACCOUNT=spark-iceberg
   kubectl get rolebinding spark-ice-role || kubectl create rolebinding spark-ice-role --clusterrole=edit --serviceaccount="${TEST_NS}:${SERVICE_ACCOUNT}" --namespace=${TEST_NS}
 fi
-TAG=$(date +%s)
+TAG=${TAG:-$(date +%s)}
 # Archs to build for, e.g. "--platform linux/amd64,linux/arm64"
 #ARCHS=${ARCHS:""}
 
