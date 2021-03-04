@@ -18,13 +18,15 @@
   </property>
   <property>
     <name>javax.jdo.option.ConnectionUserName</name>
-    <!-- TODO: Pull this from the secrets -->
     <value>root</value>
   </property>
   <property>
     <name>javax.jdo.option.ConnectionPassword</name>
-    <!-- TODO: Pull this from the secrets -->
-    <value>mypass</value>
+    <value>bloopTheNoop</value>
+  <--!
+    TODO - Make this more generic - the password comes from metastore.yaml and isnt an env variable yet.
+    <value>${MYSQL_ROOT_PASSWORD}</value>
+  -->
   </property>
   <property>
     <name>metastore.warehouse.dir</name>
