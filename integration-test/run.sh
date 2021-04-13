@@ -108,7 +108,7 @@ do
   pushd "spark-${branch}"
   (git checkout "${branch}" && \
    git pull && \
-#   ./build/mvn -Pkubernetes -Phadoop-aws compile package -DskipTests && \
+   ./build/mvn -Pkubernetes -Phadoop-aws compile package -DskipTests && \
   (./bin/docker-image-tool.sh -r "${CONTAINER_PREFIX}" -t "${TAG}-${branch}" -b java_image_tag=11-jre-slim -X -p resource-managers/kubernetes/docker/src/main/dockerfiles/spark/bindings/python/Dockerfile build || ( \
    ./bin/docker-image-tool.sh -r "${CONTAINER_PREFIX}" -t "${TAG}-${branch}" -b java_image_tag=11-jre-slim  -p resource-managers/kubernetes/docker/src/main/dockerfiles/spark/bindings/python/Dockerfile build && \
    ./bin/docker-image-tool.sh -r "${CONTAINER_PREFIX}" -t "${TAG}-${branch}" push)) && \
@@ -148,8 +148,11 @@ popd
 echo "Build the containers with Iceberg & tools present"
 if [ ! -d iceberg ]; then
   cp -af ${ICEBERG_DIR} ./iceberg
+  pushd iceberg
+  ./gradlew build -x test
+  popd
 fi
-  
+
 for SPARK_TAG in "${SPARK_TAGS[@]}"
 do
   docker buildx build . -f "${INTEGRATION_DIR}/containers/spark/Dockerfile" -t "${CONTAINER_PREFIX}/iceberg-spark:${SPARK_TAG}" --build-arg base="${CONTAINER_PREFIX}/spark-py:${SPARK_TAG}" --push ${DOCKER_EXTRA}
@@ -199,6 +202,7 @@ export SPARK_HOME
 export SPARK_CONFIG
 export SPARK_TAGS_FLAT
 export
+export > myenvs
 echo "Getting ready to run tests with Spark tags ${SPARK_TAGS_FLAT}"
 CALLED_FROM_RUN=1 python3 run_tests.py
 
