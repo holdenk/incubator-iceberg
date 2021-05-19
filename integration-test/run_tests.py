@@ -1,0 +1,42 @@
+import sys
+import os
+import subprocess
+MIN_PYTHON = (3,8)
+
+# Check that things are ok.
+if sys.version_info < MIN_PYTHON:
+    sys.exit("Python %s.%s or later is required.\n" % MIN_PYTHON)
+
+print(os.environ)
+
+if "CALLED_FROM_RUN" not in os.environ:
+    sys.exit("Please use run.sh to call me, thanks!")
+
+def generate_data(scale_factors):
+    for format in formats:
+        for factor in scale_factors:
+            classname = "org.apache.spark.sql.execution.benchmark.TPCDSDatagen"
+            target = f"{s3_root}/{factor}/{format}"
+            jobname=f"dsgen{factor}{format}"
+            tag = spark_tags[0]
+            image=f"{container_prefix}/iceberg-spark:{tag}"
+            app_name = f"spark-tpcds-test-gen-{factor}"
+            jar="local:///spark-tpcds-datagen_2.12-0.1.0-SNAPSHOT-with-dependencies.jar"
+            exec_str = f"{spark_home}/bin/spark-submit --conf spark.kubernetes.container.image={image}   --class {classname} --name {app_name} --conf spark.kubernetes.driver.label.sdr.appname=spark --conf spark.sql.catalog.hive_prod=org.apache.iceberg.spark.SparkCatalog --conf spark.kubernetes.executor.label.sdr.appname=spark --conf spark.kubernetes.submission.waitAppCompletion=false {spark_config} {jar} --output-location {target} --scale-factor {factor} --format {format}"
+            print(f"Executing {exec_str}")
+            return subprocess.Popen(exec_str, shell=True)
+
+
+
+
+container_prefix = os.getenv("CONTAINER_PREFIX")
+spark_tags = os.getenv("SPARK_TAGS_FLAT").split(" ")
+spark_home = os.getenv("SPARK_HOME")
+spark_config = os.getenv("SPARK_CONFIG")
+s3_root = os.getenv("S3_ROOT")
+scale_factors = [1, 2]
+formats = ["parquet", "orc"]
+#scale_factors = [2, 3]
+generated = os.getenv("DATA_GENERATED")
+if generated is None:
+    generate_data(scale_factors)
